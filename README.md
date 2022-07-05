@@ -8,7 +8,7 @@ An interpreter for the esoteric programming language [Brainfuck](https://en.wiki
 rust installed. Check how to do it [here](https://www.rust-lang.org/tools/install).
 
 ```
-git clone https://chitramdasgupta/brainf-interpreter.git
+git clone https://github.com/chitramdasgupta/brainf-interpreter.git
 cd brainf-interpreter
 cargo build --release
 ```
