@@ -1,22 +1,42 @@
-use std::io::Read;
+use std::{io::Read, fmt};
 
 const TAPE_LENGTH: usize = 30_000;
 
+#[derive(Clone, Hash)]
 pub struct Machine {
     instruction_tape: Vec<char>,
     data_tape: [u8; TAPE_LENGTH],
     data_pointer: usize,
 }
 
-impl Machine {
-    pub fn new() -> Self {
+impl Default for Machine {
+    fn default() -> Self { 
         Self {
             instruction_tape: Vec::new(),
             data_tape: [0; TAPE_LENGTH],
             data_pointer: 0,
         }
-    }
+     }
+}
 
+impl fmt::Debug for Machine {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Machine")
+            .field("instruction_tape", &self.instruction_tape)
+            .field("data_tape", &self.data_tape)
+            .field("data_pointer", &self.data_pointer)
+            .finish()
+    }
+}
+
+impl fmt::Display for Machine {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Machine (instruction_tape: {:?}, data_tape: {:?}, data_ponter: {})", 
+            self.instruction_tape, self.data_tape, self.data_pointer)
+    }
+}
+
+impl Machine {
     pub fn parse_instructions(&mut self, contents: String) {
         self.instruction_tape = contents
             .chars()
