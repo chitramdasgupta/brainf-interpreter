@@ -2,10 +2,10 @@ use std::{fmt, io::Read};
 
 #[derive(Clone, Hash, Debug, PartialEq)]
 enum Instr {
-    IncrDataByte,
-    DecrDataByte,
-    IncrDataPointer,
-    DecrDataPointer,
+    IncrDataByte(u8),
+    DecrDataByte(u8),
+    IncrDataPointer(usize),
+    DecrDataPointer(usize),
     Print,
     Input,
     JumpForward(usize),
@@ -58,10 +58,10 @@ impl Machine {
         self.instruction_tape = contents
             .chars()
             .filter_map(|c| match c {
-                '+' => Some(Instr::IncrDataByte),
-                '-' => Some(Instr::DecrDataByte),
-                '>' => Some(Instr::IncrDataPointer),
-                '<' => Some(Instr::DecrDataPointer),
+                '+' => Some(Instr::IncrDataByte(1)),
+                '-' => Some(Instr::DecrDataByte(1)),
+                '>' => Some(Instr::IncrDataPointer(1)),
+                '<' => Some(Instr::DecrDataPointer(1)),
                 '.' => Some(Instr::Print),
                 ',' => Some(Instr::Input),
                 '[' => Some(Instr::JumpForward(0)),
@@ -105,17 +105,22 @@ impl Machine {
         let mut i = 0;
         while i < self.instruction_tape.len() {
             match self.instruction_tape[i] {
-                Instr::IncrDataByte => {
+                Instr::IncrDataByte(incr) => {
                     self.data_tape[self.data_pointer] =
-                        self.data_tape[self.data_pointer].wrapping_add(1)
+                        self.data_tape[self.data_pointer].wrapping_add(incr)
                 }
-                Instr::DecrDataByte => {
+                Instr::DecrDataByte(incr) => {
                     self.data_tape[self.data_pointer] =
-                        self.data_tape[self.data_pointer].wrapping_sub(1)
+                        self.data_tape[self.data_pointer].wrapping_sub(incr)
                 }
 
-                Instr::IncrDataPointer => self.data_pointer = self.data_pointer.wrapping_add(1),
-                Instr::DecrDataPointer => self.data_pointer = self.data_pointer.wrapping_sub(1),
+                Instr::IncrDataPointer(incr) => {
+                    self.data_pointer = self.data_pointer.wrapping_add(incr)
+                }
+
+                Instr::DecrDataPointer(incr) => {
+                    self.data_pointer = self.data_pointer.wrapping_sub(incr)
+                }
 
                 Instr::Print => print!("{}", self.data_tape[self.data_pointer] as char),
                 Instr::Input => {
