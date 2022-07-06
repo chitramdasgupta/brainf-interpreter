@@ -18,7 +18,7 @@ fn main() -> Result<(), interpreter::Error> {
 
     machine.parse_instructions(contents)?;
 
-    machine.execute_instructions();
+    machine.execute_instructions()?;
 
     Ok(())
 }

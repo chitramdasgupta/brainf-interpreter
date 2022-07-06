@@ -16,6 +16,7 @@ enum Instr {
 pub enum Error {
     UnmatchedClosedBracket(usize),
     UnmatchedOpenBracket(usize),
+    TapeOverflowed,
 }
 
 #[derive(Clone, Default)]
@@ -101,9 +102,15 @@ impl Machine {
         }
     }
 
-    pub fn execute_instructions(&mut self) {
+    pub fn execute_instructions(&mut self) -> Result<(), Error> {
         let mut i = 0;
         while i < self.instruction_tape.len() {
+            if self.data_tape.get(self.data_pointer).is_none() {
+                eprintln!("\nEnd of tape reached.");
+                eprintln!("Consider using a larger number of cells");
+                eprintln!("eg: brainf_interpreter source.bf 60000");
+                return Err(Error::TapeOverflowed);
+            }
             match self.instruction_tape[i] {
                 Instr::IncrDataByte => {
                     self.data_tape[self.data_pointer] =
@@ -139,5 +146,6 @@ impl Machine {
             }
             i += 1;
         }
+        Ok(())
     }
 }
