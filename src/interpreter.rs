@@ -10,23 +10,29 @@ enum Instr {
     DecrDataPointer,
     Print,
     Input,
-    JumpForward,
-    JumpBackward,
+    JumpForward(usize),
+    JumpBackward(usize),
+}
+
+#[derive(Debug)]
+pub enum Error {
+    UnmatchedClosedBracket(usize),
+    UnmatchedOpenBracket(usize),
 }
 
 #[derive(Clone, Hash)]
 pub struct Machine {
-    instr_tape: Vec<Instr>,
-    data: [u8; TAPE_LEN],
-    pointer: usize,
+    instruction_tape: Vec<Instr>,
+    data_tape: Vec<u8>,
+    data_pointer: usize,
 }
 
 impl Default for Machine {
     fn default() -> Self {
         Self {
-            instr_tape: Vec::new(),
-            data: [0; TAPE_LEN],
-            pointer: 0,
+            instruction_tape: Default::default(),
+            data_tape: vec![0; TAPE_LEN],
+            data_pointer: Default::default(),
         }
     }
 }
@@ -34,9 +40,9 @@ impl Default for Machine {
 impl fmt::Debug for Machine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Machine")
-            .field("instr_tape", &self.instr_tape)
-            .field("data", &self.data)
-            .field("pointer", &self.pointer)
+            .field("instr_tape", &self.instruction_tape)
+            .field("data", &self.data_tape)
+            .field("pointer", &self.data_pointer)
             .finish()
     }
 }
@@ -46,79 +52,106 @@ impl fmt::Display for Machine {
         write!(
             f,
             "Machine (instr_tape: {:?}, data: {:?}, pointer: {})",
-            self.instr_tape, self.data, self.pointer
+            self.instruction_tape, self.data_tape, self.data_pointer
         )
     }
 }
 
 impl Machine {
-    pub fn parse_instructions(&mut self, contents: String) {
-        contents.chars().for_each(|c| {
+    pub fn from(tape_length: usize) -> Self {
+        Self {
+            instruction_tape: vec![],
+            data_tape: vec![0; tape_length],
+            data_pointer: 0,
+        }
+    }
+
+    pub fn new() -> Self {
+        Self::from(TAPE_LEN)
+    }
+
+    pub fn parse_instructions(&mut self, contents: String) -> Result<(), Error> {
+        self.instruction_tape = contents
+            .chars()
+            .filter_map(|c| match c {
+                '+' => Some(Instr::IncrDataByte),
+                '-' => Some(Instr::DecrDataByte),
+                '>' => Some(Instr::IncrDataPointer),
+                '<' => Some(Instr::DecrDataPointer),
+                '.' => Some(Instr::Print),
+                ',' => Some(Instr::Input),
+                '[' => Some(Instr::JumpForward(0)),
+                ']' => Some(Instr::JumpBackward(0)),
+                _ => None,
+            })
+            .collect();
+        if let Err(e) = self.check_brackets() {
+            self.instruction_tape.clear();
+            return Err(e);
+        };
+        self.data_tape = vec![0; self.data_tape.len()];
+        self.data_pointer = 0;
+        Ok(())
+    }
+
+    fn check_brackets(&mut self) -> Result<(), Error> {
+        let mut stack = vec![];
+        for (i, c) in self.instruction_tape.clone().iter().enumerate() {
             match c {
-                '+' => self.instr_tape.push(Instr::IncrDataByte),
-                '-' => self.instr_tape.push(Instr::DecrDataByte),
-                '>' => self.instr_tape.push(Instr::IncrDataPointer),
-                '<' => self.instr_tape.push(Instr::DecrDataPointer),
-                '.' => self.instr_tape.push(Instr::Print),
-                ',' => self.instr_tape.push(Instr::Input),
-                '[' => self.instr_tape.push(Instr::JumpForward),
-                ']' => self.instr_tape.push(Instr::JumpBackward),
+                Instr::JumpForward(0) => {
+                    stack.push(i);
+                }
+                Instr::JumpBackward(0) => {
+                    if stack.is_empty() {
+                        return Err(Error::UnmatchedClosedBracket(i));
+                    }
+                    let start = stack.pop().unwrap();
+                    self.instruction_tape[i] = Instr::JumpBackward(start);
+                    self.instruction_tape[start] = Instr::JumpForward(i);
+                }
                 _ => {}
-            };
-        });
+            }
+        }
+        if stack.is_empty() {
+            Ok(())
+        } else {
+            Err(Error::UnmatchedOpenBracket(stack.pop().unwrap()))
+        }
     }
 
     pub fn execute_instructions(&mut self) {
         let mut i = 0;
-        while i < self.instr_tape.len() {
-            match self.instr_tape[i] {
+        while i < self.instruction_tape.len() {
+            match self.instruction_tape[i] {
                 Instr::IncrDataByte => {
-                    self.data[self.pointer] = self.data[self.pointer].wrapping_add(1)
+                    self.data_tape[self.data_pointer] =
+                        self.data_tape[self.data_pointer].wrapping_add(1)
                 }
-
                 Instr::DecrDataByte => {
-                    self.data[self.pointer] = self.data[self.pointer].wrapping_sub(1)
+                    self.data_tape[self.data_pointer] =
+                        self.data_tape[self.data_pointer].wrapping_sub(1)
                 }
 
-                Instr::IncrDataPointer => self.pointer = (self.pointer + 1).rem_euclid(TAPE_LEN),
+                Instr::IncrDataPointer => self.data_pointer = self.data_pointer.wrapping_add(1),
+                Instr::DecrDataPointer => self.data_pointer = self.data_pointer.wrapping_sub(1),
 
-                Instr::DecrDataPointer => self.pointer = (self.pointer - 1).rem_euclid(TAPE_LEN),
-
-                Instr::Print => print!("{}", self.data[self.pointer] as char),
-
+                Instr::Print => print!("{}", self.data_tape[self.data_pointer] as char),
                 Instr::Input => {
-                    self.data[self.pointer] = std::io::stdin()
+                    self.data_tape[self.data_pointer] = std::io::stdin()
                         .bytes()
                         .next()
                         .and_then(|result| result.ok())
-                        .expect("Could not read input");
+                        .unwrap()
                 }
 
-                Instr::JumpForward => {
-                    if self.data[self.pointer] == 0 {
-                        let mut open_braces = 1;
-                        while open_braces > 0 {
-                            i += 1;
-                            if self.instr_tape[i] == Instr::JumpForward {
-                                open_braces += 1;
-                            } else if self.instr_tape[i] == Instr::JumpBackward {
-                                open_braces -= 1;
-                            }
-                        }
+                Instr::JumpForward(jump) => {
+                    if self.data_tape[self.data_pointer] == 0 {
+                        i = jump;
                     }
                 }
-
-                Instr::JumpBackward => {
-                    if self.data[self.pointer] != 0 {
-                        let mut open_braces = 1;
-                        while open_braces > 0 {
-                            i -= 1;
-                            if self.instr_tape[i] == Instr::JumpBackward {
-                                open_braces += 1;
-                            } else if self.instr_tape[i] == Instr::JumpForward {
-                                open_braces -= 1;
-                            }
-                        }
+                Instr::JumpBackward(jump) => {
+                    if self.data_tape[self.data_pointer] != 0 {
+                        i = jump;
                     }
                 }
             }
