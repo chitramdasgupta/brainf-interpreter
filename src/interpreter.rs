@@ -24,7 +24,7 @@ pub enum Error {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Hash)]
 pub struct Machine {
     instruction_tape: Vec<Instr>,
     data_tape: Vec<u8>,
