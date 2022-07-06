@@ -1,8 +1,6 @@
 use std::{fmt, io::Read};
 
-
 const TAPE_LEN: usize = 30_000;
-
 
 #[derive(Clone, Hash, Debug, PartialEq)]
 enum Instr {
@@ -16,13 +14,11 @@ enum Instr {
     JumpBackward(usize),
 }
 
-
 #[derive(Debug)]
 pub enum Error {
     UnmatchedClosedBracket(usize),
     UnmatchedOpenBracket(usize),
 }
-
 
 #[derive(Clone, Hash)]
 pub struct Machine {
@@ -30,7 +26,6 @@ pub struct Machine {
     data_tape: Vec<u8>,
     data_pointer: usize,
 }
-
 
 impl Default for Machine {
     fn default() -> Self {
@@ -42,17 +37,15 @@ impl Default for Machine {
     }
 }
 
-
 impl fmt::Debug for Machine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Machine")
-         .field("instr_tape", &self.instruction_tape)
-         .field("data", &self.data_tape)
-         .field("pointer", &self.data_pointer)
-         .finish()
+            .field("instr_tape", &self.instruction_tape)
+            .field("data", &self.data_tape)
+            .field("pointer", &self.data_pointer)
+            .finish()
     }
 }
-
 
 impl fmt::Display for Machine {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -64,7 +57,6 @@ impl fmt::Display for Machine {
     }
 }
 
-
 impl Machine {
     pub fn from(tape_length: usize) -> Self {
         Self {
@@ -73,7 +65,6 @@ impl Machine {
             data_pointer: 0,
         }
     }
-
 
     pub fn new() -> Self {
         Self::from(TAPE_LEN)
@@ -91,7 +82,7 @@ impl Machine {
                 ',' => Some(Instr::Input),
                 '[' => Some(Instr::JumpForward(0)),
                 ']' => Some(Instr::JumpBackward(0)),
-                _ => None
+                _ => None,
             })
             .collect();
         if let Err(e) = self.check_brackets() {
@@ -132,25 +123,37 @@ impl Machine {
         let mut i = 0;
         while i < self.instruction_tape.len() {
             match self.instruction_tape[i] {
-                Instr::IncrDataByte => self.data_tape[self.data_pointer] = self.data_tape[self.data_pointer].wrapping_add(1),
-                Instr::DecrDataByte => self.data_tape[self.data_pointer] = self.data_tape[self.data_pointer].wrapping_sub(1),
+                Instr::IncrDataByte => {
+                    self.data_tape[self.data_pointer] =
+                        self.data_tape[self.data_pointer].wrapping_add(1)
+                }
+                Instr::DecrDataByte => {
+                    self.data_tape[self.data_pointer] =
+                        self.data_tape[self.data_pointer].wrapping_sub(1)
+                }
 
                 Instr::IncrDataPointer => self.data_pointer = self.data_pointer.wrapping_add(1),
                 Instr::DecrDataPointer => self.data_pointer = self.data_pointer.wrapping_sub(1),
 
                 Instr::Print => print!("{}", self.data_tape[self.data_pointer] as char),
-                Instr::Input => self.data_tape[self.data_pointer] = std::io::stdin()
-                    .bytes()
-                    .next()
-                    .and_then(|result| result.ok())
-                    .unwrap(),
+                Instr::Input => {
+                    self.data_tape[self.data_pointer] = std::io::stdin()
+                        .bytes()
+                        .next()
+                        .and_then(|result| result.ok())
+                        .unwrap()
+                }
 
-                Instr::JumpForward(jump) => if self.data_tape[self.data_pointer] == 0 {
-                    i = jump;
-                },
-                Instr::JumpBackward(jump) => if self.data_tape[self.data_pointer] != 0 {
-                    i = jump;
-                },
+                Instr::JumpForward(jump) => {
+                    if self.data_tape[self.data_pointer] == 0 {
+                        i = jump;
+                    }
+                }
+                Instr::JumpBackward(jump) => {
+                    if self.data_tape[self.data_pointer] != 0 {
+                        i = jump;
+                    }
+                }
             }
             i += 1;
         }
