@@ -1,7 +1,5 @@
 use std::{fmt, io::Read};
 
-const TAPE_LEN: usize = 30_000;
-
 #[derive(Clone, Hash, Debug, PartialEq)]
 enum Instr {
     IncrDataByte,
@@ -20,21 +18,11 @@ pub enum Error {
     UnmatchedOpenBracket(usize),
 }
 
-#[derive(Clone, Hash)]
+#[derive(Clone, Default)]
 pub struct Machine {
     instruction_tape: Vec<Instr>,
     data_tape: Vec<u8>,
     data_pointer: usize,
-}
-
-impl Default for Machine {
-    fn default() -> Self {
-        Self {
-            instruction_tape: Default::default(),
-            data_tape: vec![0; TAPE_LEN],
-            data_pointer: Default::default(),
-        }
-    }
 }
 
 impl fmt::Debug for Machine {
@@ -58,16 +46,12 @@ impl fmt::Display for Machine {
 }
 
 impl Machine {
-    pub fn from(tape_length: usize) -> Self {
+    pub fn new(tape_length: usize) -> Self {
         Self {
             instruction_tape: vec![],
             data_tape: vec![0; tape_length],
             data_pointer: 0,
         }
-    }
-
-    pub fn new() -> Self {
-        Self::from(TAPE_LEN)
     }
 
     pub fn parse_instructions(&mut self, contents: String) -> Result<(), Error> {
