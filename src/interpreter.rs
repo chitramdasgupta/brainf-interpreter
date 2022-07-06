@@ -94,7 +94,10 @@ impl Machine {
                 _ => None
             })
             .collect();
-        self.check_brackets()?;
+        if let Err(e) = self.check_brackets() {
+            self.instruction_tape.clear();
+            return Err(e);
+        };
         self.data_tape = vec![0; self.data_tape.len()];
         self.data_pointer = 0;
         Ok(())
