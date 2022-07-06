@@ -89,8 +89,6 @@ impl Machine {
             self.instruction_tape.clear();
             return Err(e);
         };
-        self.data_tape = vec![0; self.data_tape.len()];
-        self.data_pointer = 0;
         Ok(())
     }
 
