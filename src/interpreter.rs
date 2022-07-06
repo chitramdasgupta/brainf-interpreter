@@ -160,11 +160,11 @@ impl Machine {
                 }
 
                 Instr::IncrDataPointer(incr) => {
-                    self.data_pointer = self.data_pointer.wrapping_add(incr)
+                    self.data_pointer += incr;
                 }
 
                 Instr::DecrDataPointer(incr) => {
-                    self.data_pointer = self.data_pointer.wrapping_sub(incr)
+                    self.data_pointer -= incr;
                 }
 
                 Instr::Print => print!("{}", self.data_tape[self.data_pointer] as char),
