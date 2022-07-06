@@ -1,6 +1,6 @@
 use std::{fmt, io::Read};
 
-#[derive(Clone, Hash, Debug, PartialEq)]
+#[derive(Clone, Hash, Debug, PartialEq, Copy)]
 enum Instr {
     IncrDataByte(u8),
     DecrDataByte(u8),
@@ -99,6 +99,27 @@ impl Machine {
         } else {
             Err(Error::UnmatchedOpenBracket(stack.pop().unwrap()))
         }
+    }
+
+    fn condense(&mut self) -> Vec<Instr> {
+        let mut condensed = Vec::new();
+        let mut counter = None;
+        for instr in &self.instruction_tape {
+            match instr {
+                Instr::IncrDataByte(1) => {
+                    if let Some(Instr::IncrDataByte(incr)) = counter {
+                        counter = Some(Instr::IncrDataByte(incr + 1));
+                    }
+                }
+                _ => {
+                    if let Some(instr) = counter {
+                        condensed.push(instr);
+                        counter = None;
+                    }
+                }
+            }
+        }
+        condensed
     }
 
     pub fn execute_instructions(&mut self) {
