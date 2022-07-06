@@ -69,6 +69,7 @@ impl Machine {
                 _ => None,
             })
             .collect();
+        self.condense();
         if let Err(e) = self.check_brackets() {
             self.instruction_tape.clear();
             return Err(e);
@@ -101,25 +102,41 @@ impl Machine {
         }
     }
 
-    fn condense(&mut self) -> Vec<Instr> {
+    fn condense(&mut self) {
         let mut condensed = Vec::new();
-        let mut counter = None;
-        for instr in &self.instruction_tape {
-            match instr {
-                Instr::IncrDataByte(1) => {
-                    if let Some(Instr::IncrDataByte(incr)) = counter {
-                        counter = Some(Instr::IncrDataByte(incr + 1));
+        let mut i = 0;
+        let mut counter: usize;
+        while i < self.instruction_tape.len() {
+            match self.instruction_tape[i] {
+                c @ (Instr::IncrDataByte(1)
+                | Instr::DecrDataByte(1)
+                | Instr::IncrDataPointer(1)
+                | Instr::DecrDataPointer(1)) => {
+                    counter = 1;
+                    i += 1;
+                    while i < self.instruction_tape.len() && self.instruction_tape[i] == c {
+                        counter += 1;
+                        i += 1;
                     }
+                    condensed.push(match c {
+                        Instr::IncrDataByte(_) => Instr::IncrDataByte(counter as u8),
+                        Instr::DecrDataByte(_) => Instr::DecrDataByte(counter as u8),
+                        Instr::IncrDataPointer(_) => Instr::IncrDataPointer(counter),
+                        Instr::DecrDataPointer(_) => Instr::DecrDataPointer(counter),
+                        _ => unreachable!(),
+                    });
                 }
-                _ => {
-                    if let Some(instr) = counter {
-                        condensed.push(instr);
-                        counter = None;
-                    }
+                instr @ (Instr::Print
+                | Instr::Input
+                | Instr::JumpForward(_)
+                | Instr::JumpBackward(_)) => {
+                    condensed.push(instr);
+                    i += 1;
                 }
+                _ => unreachable!("All condensable instructions should be initialized with value 1 (matched i the first branch)"),
             }
         }
-        condensed
+        self.instruction_tape = condensed;
     }
 
     pub fn execute_instructions(&mut self) {
