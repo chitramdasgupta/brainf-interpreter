@@ -121,8 +121,13 @@ impl Machine {
                         self.data_tape[self.data_pointer].wrapping_sub(1)
                 }
 
-                Instr::IncrDataPointer => self.data_pointer = self.data_pointer.wrapping_add(1),
-                Instr::DecrDataPointer => self.data_pointer = self.data_pointer.wrapping_sub(1),
+                Instr::IncrDataPointer => {
+                    self.data_pointer = (self.data_pointer + 1) % (self.data_tape.len())
+                }
+
+                Instr::DecrDataPointer => {
+                    self.data_pointer = (self.data_pointer - 1) % (self.data_tape.len())
+                }
 
                 Instr::Print => print!("{}", self.data_tape[self.data_pointer] as char),
                 Instr::Input => {

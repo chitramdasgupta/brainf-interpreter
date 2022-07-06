@@ -5,9 +5,7 @@ mod interpreter;
 fn main() -> Result<(), interpreter::Error> {
     let args: Vec<String> = env::args().collect();
 
-    let file_name = &args
-        .get(1)
-        .unwrap();
+    let file_name = &args.get(1).unwrap();
 
     let cell_count = match &args.get(2) {
         Some(count) => count.parse::<usize>().unwrap(),
